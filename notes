@@ -1,0 +1,60 @@
+#Install Debian on VirtualBox to goinfre folder
+VDI 8.00 GB Fixed size
+https://www.debian.org/distrib/
+
+Partition:
+Create three partitions on SCSI2
+1.	4.2GB, primary, beggining, ext4, /
+2.	1GB, swap
+3.	Rest memory, logical, ext4, home/
+
+In software installation:
+No desctop interfaces,
+SSH services - check
+Utilities - check
+Grub - ok, install to disk
+
+#Update system
+Install sudo with:
+apt install sudo
+
+Update packages:
+sudo apt update
+sudo apt upgrade
+
+#Add user and give sudo rights:
+sudo adduser username
+sudo usermod -aG username
+su - user
+
+#Disable DHCP and add static IP address:
+Set network adapter of VM to be attached to Bridged Adapter (Network settings of VM)
+https://linuxconfig.org/how-to-setup-a-static-ip-address-on-debian-linux
+
+In /etc/network/interfaces file:
+remove last line and leave only "auto enp0s3"
+create enp0s3 file inside interfaces.d folder 
+inside /etc/network/interfaces.d/enp0s3 file specify:
+
+iface enp0s3 inet static
+  address: 10.11.142.142
+  netmask: 255.255.255.252 #stands for /30
+  gateway: 10.11.254.254
+
+save file,
+restart networking servise with:
+sudo service networking restart
+sudo ip link set enp0s3 up
+
+Modify dafault ssh port:
+https://www.linuxlookup.com/howto/change_default_ssh_port
+
+Change #PORT 22 from default to for example 2222, save, reboot SHH with
+sudo /etc/init.d/ssh restart
+
+Now should be able to connect via ssh on host computer with:
+ssh username@10.11.142.142 -p 2222
+
+----
+
+Configure SSH with to be accessable with pub.key
