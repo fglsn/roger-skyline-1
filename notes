@@ -109,5 +109,12 @@ sudo ufw allow 50420/tcp #SSH
 sudo ufw allow 443 #HTTPS
 sudo ufw allow 80/tcp #HTTP
 
+UPD: also port 25 can be opened
+sudo ufw allow 25 #Emailing. Communication between mail servers generally uses the standard TCP port 25 designated for SMTP.
+https://en.wikipedia.org/wiki/Simple_Mail_Transfer_Protocol#:~:text=Communication%20between%20mail%20servers%20generally,port%2025%20designated%20for%20SMTP.
+
 To delete rules:
 https://www.cyberciti.biz/faq/how-to-delete-a-ufw-firewall-rule-on-ubuntu-debian-linux/
+
+To check if there are still open ports:
+https://www.freecodecamp.org/news/what-is-nmap-and-how-to-use-it-a-tutorial-for-the-greatest-scanning-tool-of-all-time 
