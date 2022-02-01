@@ -30,31 +30,84 @@ su - user
 #Disable DHCP and add static IP address:
 Set network adapter of VM to be attached to Bridged Adapter (Network settings of VM)
 https://linuxconfig.org/how-to-setup-a-static-ip-address-on-debian-linux
+Difference between auto and allow-hotplug
+https://unix.stackexchange.com/questions/641228/etc-network-interfaces-difference-between-auto-and-allow-hotplug#:~:text=I%20mean%20auto%20is%20brought,of%20static%20configuration%20is%20used.
 
 In /etc/network/interfaces file:
-remove last line and leave only "auto enp0s3"
+remove last line and leave only "auto enp0s3" 
 create enp0s3 file inside interfaces.d folder 
 inside /etc/network/interfaces.d/enp0s3 file specify:
-
-iface enp0s3 inet static
-  address: 10.11.142.142
-  netmask: 255.255.255.252 #stands for /30
-  gateway: 10.11.254.254
-
-save file,
-restart networking servise with:
+  iface enp0s3 inet static
+    address: 10.11.142.142
+    netmask: 255.255.255.252 #stands for /30
+    gateway: 10.11.254.254
+save file
+restart networking daemon with:
 sudo service networking restart
 sudo ip link set enp0s3 up
 
 Modify dafault ssh port:
 https://www.linuxlookup.com/howto/change_default_ssh_port
-
-Change #PORT 22 from default to for example 2222, save, reboot SHH with
+Change /etc/ssh/sshd_config #PORT 22 from default to for example 50042, save, reboot SHH with
 sudo /etc/init.d/ssh restart
 
 Now should be able to connect via ssh on host computer with:
-ssh username@10.11.142.142 -p 2222
+ssh username@10.11.142.142 -p 50042
+
+Disable SSH Root Login:
+https://www.tecmint.com/disable-or-enable-ssh-root-login-and-limit-ssh-access-in-linux/#:~:text=For%20security%20reasons%2C%20it's%20not,gain%20access%20to%20your%20system.
+Change /etc/ssh/sshd_config 
+set #PermitRootLogin to no, uncomment it
+sudo systemctl restart sshd
 
 ----
 
-Configure SSH with to be accessable with pub.key
+If accidentely deleted host-keys in /etc/ssh do this:
+https://www.cyberciti.biz/faq/howto-regenerate-openssh-host-keys/
+sudo dpkg-reconfigure openssh-server
+sudo systemctl restart ssh
+
+Configure SSH with to be accessable with pub.key:
+https://kb.iu.edu/d/aews
+https://www.linode.com/docs/guides/use-public-key-authentication-with-ssh/
+1. Create rsa key on local Mac
+  ssh-keygen -t rsa
+2. Redirect PUBLIC ley to VM. It will be authomatically added to /home/<username>/.ssh as authorized_keys
+  ssh-copy-id -i /Users/<intralogin>/.ssh/id_rsa.pub <username>@<10.11.smth.smth> -p <desired port>
+Change /etc/ssh/sshd_config 
+set #PasswordAuthentication to no, uncomment
+3. Try login to VM 
+
+Firewall:
+
+https://opensource.com/article/18/9/linux-iptables-firewalld
+https://help.ubuntu.com/community/UFW
+https://www.linuxcapable.com/how-to-setup-and-configure-ufw-firewall-on-debian-11-bullseye/
+
+Install and set up UFW Firewall:
+sudo apt install ufw -y 
+sudo systemctl enable ufw --now
+sudo systemctl status ufw
+sudo ufw enable
+
+# In the future, if you need to disable UFW for a temporary period:
+#  sudo ufw disable
+# To remove UFW altogether from your Debian system:
+#  sudo apt remove ufw --purge
+# Do not remove UFW unless you have a solid option or know how to use IPTables, 
+#  especially when running a server environment connected to the public.
+
+https://www.linuxcapable.com/how-to-setup-and-configure-ufw-firewall-on-debian-11-bullseye/
+https://www.digitalocean.com/community/tutorials/how-to-set-up-a-firewall-with-ufw-on-ubuntu-18-04
+Check status of firewall:
+sudo ufw status numbered
+Set the rules of your firewall on your server only with the services used outside the VM:
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+Enable UFW Ports to SSH, HTTPS, HTTP:
+sudo ufw allow 50420/tcp #SSH
+sudo ufw allow 443 #HTTPS
+sudo ufw allow 80/tcp #HTTP
+
+To delete rules:
+https://www.cyberciti.biz/faq/how-to-delete-a-ufw-firewall-rule-on-ubuntu-debian-linux/
