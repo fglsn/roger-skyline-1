@@ -1,4 +1,4 @@
-#Install Debian on VirtualBox to goinfre folder
+# Install Debian on VirtualBox to goinfre folder
 VDI 8.00 GB Fixed size
 https://www.debian.org/distrib/
 
@@ -14,81 +14,105 @@ SSH services - check
 Utilities - check
 Grub - ok, install to disk
 
-#Update system
-Install sudo with:
-apt install sudo
+to check partition table in GB later:
+sudo apt install parted
+sudo parted -> help -> unit GB -> print all
+
+
+----
+# Update system
+	Install sudo with:
+	apt install sudo
 
 Update packages:
-sudo apt update
-sudo apt upgrade
+	sudo apt update
+	sudo apt upgrade
 
-#Add user and give sudo rights:
-sudo adduser username
-sudo usermod -aG username
-su - user
+note, if you get error:
+	"Release file for **** is not valid yet (invalid for another *h * *min *s). 
+	Updates for this repository will not be applied"
+run: 
+	sudo hwclock --hctosys
+This is a timezone error
+https://askubuntu.com/questions/1096930/sudo-apt-update-error-release-file-is-not-yet-valid
 
-#Disable DHCP and add static IP address:
+# Add user and give sudo rights:
+	sudo adduser username
+	sudo usermod -aG username
+	su - user
+
+
+# Disable DHCP and add static IP address:
+
 Set network adapter of VM to be attached to Bridged Adapter (Network settings of VM)
+https://superuser.com/questions/594550/how-does-bridged-networking-work-in-virtualbox
 https://linuxconfig.org/how-to-setup-a-static-ip-address-on-debian-linux
+
 Difference between auto and allow-hotplug
 https://unix.stackexchange.com/questions/641228/etc-network-interfaces-difference-between-auto-and-allow-hotplug#:~:text=I%20mean%20auto%20is%20brought,of%20static%20configuration%20is%20used.
 
 In /etc/network/interfaces file:
-remove last line and leave only "auto enp0s3" 
-create enp0s3 file inside interfaces.d folder 
-inside /etc/network/interfaces.d/enp0s3 file specify:
-  iface enp0s3 inet static
-    address: 10.11.142.142
-    netmask: 255.255.255.252 #stands for /30
-    gateway: 10.11.254.254
-save file
-restart networking daemon with:
-sudo service networking restart
-sudo ip link set enp0s3 up
+	remove last line and leave only "auto enp0s3"
 
-Modify dafault ssh port:
-https://www.linuxlookup.com/howto/change_default_ssh_port
-Change /etc/ssh/sshd_config #PORT 22 from default to for example 50042, save, reboot SHH with
-sudo /etc/init.d/ssh restart
+	create enp0s3 file inside interfaces.d folder 
+	inside /etc/network/interfaces.d/enp0s3 file specify:
+		iface enp0s3 inet static
+			address: 10.11.142.142
+			netmask: 255.255.255.252 #stands for /30
+			gateway: 10.11.254.254
+
+	save file
+	restart networking daemon with:
+	sudo service networking restart
+	sudo ip link set enp0s3 up
+	https://www.howtogeek.com/657911/how-to-use-the-ip-command-on-linux/
+
+	(netmask can be also set by:
+	ifconfig interface_name netmask mask )
+
+
+# Modify dafault ssh port:
+	https://www.linuxlookup.com/howto/change_default_ssh_port
+	Change /etc/ssh/sshd_config #PORT 22 from default to for example 50042, save, reboot SHH with
+	sudo /etc/init.d/ssh restart
 
 Now should be able to connect via ssh on host computer with:
 ssh username@10.11.142.142 -p 50042
 
 Disable SSH Root Login:
-https://www.tecmint.com/disable-or-enable-ssh-root-login-and-limit-ssh-access-in-linux/#:~:text=For%20security%20reasons%2C%20it's%20not,gain%20access%20to%20your%20system.
-Change /etc/ssh/sshd_config 
-set #PermitRootLogin to no, uncomment it
-sudo systemctl restart sshd
+	https://www.tecmint.com/disable-or-enable-ssh-root-login-and-limit-ssh-access-in-linux/#:~:text=For%20security%20reasons%2C%20it's%20not,gain%20access%20to%20your%20system.
+	Change /etc/ssh/sshd_config 
+	set #PermitRootLogin to no, uncomment it
+	sudo systemctl restart sshd
 
 ----
 
 If accidentely deleted host-keys in /etc/ssh do this:
-https://www.cyberciti.biz/faq/howto-regenerate-openssh-host-keys/
-sudo dpkg-reconfigure openssh-server
-sudo systemctl restart ssh
+	https://www.cyberciti.biz/faq/howto-regenerate-openssh-host-keys/
+	sudo dpkg-reconfigure openssh-server
+	sudo systemctl restart ssh
 
-Configure SSH with to be accessable with pub.key:
-https://kb.iu.edu/d/aews
-https://www.linode.com/docs/guides/use-public-key-authentication-with-ssh/
-1. Create rsa key on local Mac
-  ssh-keygen -t rsa
-2. Redirect PUBLIC ley to VM. It will be authomatically added to /home/<username>/.ssh as authorized_keys
-  ssh-copy-id -i /Users/<intralogin>/.ssh/id_rsa.pub <username>@<10.11.smth.smth> -p <desired port>
-Change /etc/ssh/sshd_config 
-set #PasswordAuthentication to no, uncomment
-3. Try login to VM 
+# Configure SSH with to be accessable with pub.key:
+	https://kb.iu.edu/d/aews
+	https://www.linode.com/docs/guides/use-public-key-authentication-with-ssh/
+	1. Create rsa key on local Mac
+  	ssh-keygen -t rsa
+	2. Redirect PUBLIC ley to VM. It will be authomatically added to /home/<username>/.ssh as authorized_keys
+  	ssh-copy-id -i /Users/<intralogin>/.ssh/id_rsa.pub <username>@<10.11.smth.smth> -p <desired port>
+	Change /etc/ssh/sshd_config 
+	set #PasswordAuthentication to no, uncomment
+	3. Try login to VM 
 
-Firewall:
+#Firewall:
+	https://opensource.com/article/18/9/linux-iptables-firewalld
+	https://help.ubuntu.com/community/UFW
+	https://www.linuxcapable.com/how-to-setup-and-configure-ufw-firewall-on-debian-11-bullseye/
 
-https://opensource.com/article/18/9/linux-iptables-firewalld
-https://help.ubuntu.com/community/UFW
-https://www.linuxcapable.com/how-to-setup-and-configure-ufw-firewall-on-debian-11-bullseye/
-
-Install and set up UFW Firewall:
-sudo apt install ufw -y 
-sudo systemctl enable ufw --now
-sudo systemctl status ufw
-sudo ufw enable
+	Install and set up UFW Firewall:
+	sudo apt install ufw -y 
+	sudo systemctl enable ufw --now
+	sudo systemctl status ufw
+	sudo ufw enable
 
 # In the future, if you need to disable UFW for a temporary period:
 #  sudo ufw disable
@@ -99,22 +123,143 @@ sudo ufw enable
 
 https://www.linuxcapable.com/how-to-setup-and-configure-ufw-firewall-on-debian-11-bullseye/
 https://www.digitalocean.com/community/tutorials/how-to-set-up-a-firewall-with-ufw-on-ubuntu-18-04
-Check status of firewall:
-sudo ufw status numbered
-Set the rules of your firewall on your server only with the services used outside the VM:
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-Enable UFW Ports to SSH, HTTPS, HTTP:
-sudo ufw allow 50420/tcp #SSH
-sudo ufw allow 443 #HTTPS
-sudo ufw allow 80/tcp #HTTP
 
-UPD: also port 25 can be opened
+Check status of firewall:
+	sudo ufw status numbered
+
+Set the rules of your firewall on your server only with the services used outside the VM:
+	sudo ufw default deny incoming
+	sudo ufw default allow outgoing
+	Enable UFW Ports to SSH, HTTPS, HTTP:
+	sudo ufw allow 50420/tcp #SSH
+	sudo ufw allow 443 #HTTPS
+	sudo ufw allow 80/tcp #HTTP
+
+(UPD: also port 25 can be opened
 sudo ufw allow 25 #Emailing. Communication between mail servers generally uses the standard TCP port 25 designated for SMTP.
-https://en.wikipedia.org/wiki/Simple_Mail_Transfer_Protocol#:~:text=Communication%20between%20mail%20servers%20generally,port%2025%20designated%20for%20SMTP.
+https://en.wikipedia.org/wiki/Simple_Mail_Transfer_Protocol#:~:text=Communication%20between%20mail%20servers%20generally,port%2025%20designated%20for%20SMTP. )
+
+sudo ufw status verbose
+sudo ufw show added
 
 To delete rules:
 https://www.cyberciti.biz/faq/how-to-delete-a-ufw-firewall-rule-on-ubuntu-debian-linux/
+sudo ufw status numbered
+sudo ufw delete {rule-number-here}
 
-To check if there are still open ports:
-https://www.freecodecamp.org/news/what-is-nmap-and-how-to-use-it-a-tutorial-for-the-greatest-scanning-tool-of-all-time 
+#	To check if there are still open ports:
+#	https://www.freecodecamp.org/news/what-is-nmap-and-how-to-use-it-a-tutorial-for-the-greatest-scanning-tool-of-all-time 
+#	sudo apt update
+#	sudo apt install nmap -y
+#	nmap -A 10.11.142.142
+
+#??? 9929/tcp  open  nping-echo Nping echo ???
+#??? 31337/tcp open  tcpwrapped ???
+
+netstat -lntu -  opened Network ports
+
+______
+
+# DOS:
+http://lepepe.github.io/sysadmin/2016/01/19/ubuntu-server-ufw.html
+https://wiki.archlinux.org/title/Uncomplicated_Firewall#Rate_limiting_with_ufw
+
+	ufw has the ability to deny connections from an IP address that has attempted to initiate 6 or more connections in the last 30 seconds. Users should consider using this option for services such as SSH:
+		sudo ufw limit SSH
+
+Fail2Ban:
+https://wiki.archlinux.org/title/Fail2ban
+https://www.the-art-of-web.com/system/fail2ban/
+
+install:
+	sudo apt-get install fail2ban
+	sudo nano /etc/fail2ban/jail.d/jail.local
+set rules in jail.local:
+	sudo vim /etc/fail2ban/jail.d/jail.local
+
+	[DEFAULT]
+	bantime = 900
+	findtime = 600
+	maxentry = 5
+	maxfailures = 5
+
+	[sshd]
+	enabled = true
+	port = 50042
+	findtime  = 600
+	maxretry  = 5
+	bantime   = 900
+	logpath = /var/log/auth.log
+	backend??  = systemd (or auto or %(sshd_backend)s ????) 
+
+	[http-get-dos]
+	enabled = true
+	port = http,https
+	filter = http-get-dos
+	findtime  = 300
+	maxretry  = 300
+	bantime   = 300
+	logpath = /var/log/apache2/access.log
+	action = iptables[name=HTTP, port=http, protocol=tcp]
+
+	^ https://smeretech.com/how-to-ban-http-dos-attacks-with-fail2ban/
+	- maxretry is how many GETs we can have in the findtime period before getting narky
+	- findtime is the time period in seconds in which we're counting "retries" (300 seconds = 5 mins)
+	- bantime is how long we should drop incoming GET requests for a given IP for, in this case it's 5 minutes
+
+
+
+
+
+
+
+*****************
+# Create Self-Signed SSL Certificate for Apache:
+https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-apache-in-ubuntu-16-04
+
+	Create the SSL Certificate
+		sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/myrogerskuline.fi.key -out /etc/ssl/certs/myrogerskuline.fi.crt
+
+	Create strong Diffie-Hellman group, which is used in negotiating Perfect Forward Secrecy with clients (/etc/ssl/certs/dhparam.pem):
+		sudo openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048
+
+	Configure Apache to Use SSL
+		sudo nano /etc/apache2/conf-available/ssl-params.conf
+		*make changes*
+	
+	Modify the Default Apache SSL Virtual Host File
+		back up the original SSL Virtual Host file:
+			sudo cp /etc/apache2/sites-available/default-ssl.conf /etc/apache2/sites-available/default-ssl.conf.bak
+
+		open the SSL Virtual Host file to make adjustments
+			sudo nano /etc/apache2/sites-available/default-ssl.conf
+
+			add: ServerAdmin your_email@example.com
+				ServerName server_domain_or_IP
+
+				SSLCertificateFile		/etc/ssl/certs/myrogerskyline.fi.crt
+				SSLCertificateKeyFile /etc/ssl/private/myrogerskyline.fi.key
+
+				BrowserMatch "MSIE [2-6]" \
+								nokeepalive ssl-unclean-shutdown \
+								 downgrade-1.0 force-response-1.0
+	
+	Modify the Unencrypted Virtual Host File to Redirect to HTTPS
+		sudo nano /etc/apache2/sites-available/000-default.conf
+		to VirtualHost *:80 block add:
+			Redirect "/" "https://your_domain_or_IP/"
+
+	Adjust the Firewall
+		sudo ufw app list
+		
+		if no Apache in application list:
+		https://stackoverflow.com/questions/51537084/i-installed-apache-2-but-in-sudo-ufw-app-list-there-is-no-apache-applications-in
+	
+	Enabling the Changes in Apache
+		sudo a2enmod ssl
+		sudo a2enmod headers
+		sudo a2ensite default-ssl
+		sudo a2enconf ssl-params
+		sudo apache2ctl configtest
+		sudo systemctl restart apache2
+
