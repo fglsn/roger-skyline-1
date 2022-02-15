@@ -23,7 +23,7 @@ sudo parted -> help -> unit GB -> print all
 # Update system
 	Install sudo with:
 	apt install sudo
-
+ 
 Update packages:
 	sudo apt update
 	sudo apt upgrade
@@ -57,9 +57,9 @@ In /etc/network/interfaces file:
 	create enp0s3 file inside interfaces.d folder 
 	inside /etc/network/interfaces.d/enp0s3 file specify:
 		iface enp0s3 inet static
-			address: 10.11.142.142
-			netmask: 255.255.255.252 #stands for /30
-			gateway: 10.11.254.254
+			address 10.11.142.142
+			netmask 255.255.255.252 #stands for /30
+			gateway 10.11.254.254
 
 	save file
 	restart networking daemon with:
@@ -98,12 +98,12 @@ If accidentely deleted host-keys in /etc/ssh do this:
 	1. Create rsa key on local Mac
   	ssh-keygen -t rsa
 	2. Redirect PUBLIC ley to VM. It will be authomatically added to /home/<username>/.ssh as authorized_keys
-  	ssh-copy-id -i /Users/<intralogin>/.ssh/id_rsa.pub <username>@<10.11.smth.smth> -p <desired port>
+  	ssh-copy-id -i /Users/ishakuro/.ssh/id_rsa.pub user@10.11.142.143 -p 50042
 	Change /etc/ssh/sshd_config 
 	set #PasswordAuthentication to no, uncomment
 	3. Try login to VM 
 
-#Firewall:
+# Firewall:
 	https://opensource.com/article/18/9/linux-iptables-firewalld
 	https://help.ubuntu.com/community/UFW
 	https://www.linuxcapable.com/how-to-setup-and-configure-ufw-firewall-on-debian-11-bullseye/
@@ -131,11 +131,11 @@ Set the rules of your firewall on your server only with the services used outsid
 	sudo ufw default deny incoming
 	sudo ufw default allow outgoing
 	Enable UFW Ports to SSH, HTTPS, HTTP:
-	sudo ufw allow 50420/tcp #SSH
+	sudo ufw allow 50042/tcp #SSH
 	sudo ufw allow 443 #HTTPS
 	sudo ufw allow 80/tcp #HTTP
 
-(UPD: also port 25 can be opened
+(also port 25 can be opened
 sudo ufw allow 25 #Emailing. Communication between mail servers generally uses the standard TCP port 25 designated for SMTP.
 https://en.wikipedia.org/wiki/Simple_Mail_Transfer_Protocol#:~:text=Communication%20between%20mail%20servers%20generally,port%2025%20designated%20for%20SMTP. )
 
@@ -170,29 +170,38 @@ https://wiki.archlinux.org/title/Uncomplicated_Firewall#Rate_limiting_with_ufw
 Fail2Ban:
 https://wiki.archlinux.org/title/Fail2ban
 https://www.the-art-of-web.com/system/fail2ban/
+https://itstorage.net/index.php/ldce/islme/238-slau-5
+https://pipo.blog/articles/20210915-fail2ban-apache-dos
+https://serverfault.com/questions/639923/fail2ban-jail-local-vs-jail-conf
+
+Useful at the end:
+https://smeretech.com/how-to-ban-http-dos-attacks-with-fail2ban/
+https://serverfault.com/questions/949636/fail2ban-not-working-on-http-get-dos-filter
 
 install:
 	sudo apt-get install fail2ban
-	sudo nano /etc/fail2ban/jail.d/jail.local
-set rules in jail.local:
-	sudo vim /etc/fail2ban/jail.d/jail.local
 
-	[DEFAULT]
-	bantime = 900
-	findtime = 600
-	maxentry = 5
-	maxfailures = 5
+	copy jail.conf to jail.local:
+		sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+
+	set rules in jail.local:
+
+	sudo nano /etc/fail2ban/jail.local
 
 	[sshd]
+
 	enabled = true
 	port = 50042
 	findtime  = 600
 	maxretry  = 5
 	bantime   = 900
-	logpath = /var/log/auth.log
-	backend??  = systemd (or auto or %(sshd_backend)s ????) 
+	logpath = %(sshd_log)s
+	backend = %(sshd_backend)s
 
-	[http-get-dos]
+*add this after setting up and running apache2:
+
+	[http-get-dos] 
+
 	enabled = true
 	port = http,https
 	filter = http-get-dos
@@ -203,22 +212,159 @@ set rules in jail.local:
 	action = iptables[name=HTTP, port=http, protocol=tcp]
 
 	^ https://smeretech.com/how-to-ban-http-dos-attacks-with-fail2ban/
+
 	- maxretry is how many GETs we can have in the findtime period before getting narky
 	- findtime is the time period in seconds in which we're counting "retries" (300 seconds = 5 mins)
 	- bantime is how long we should drop incoming GET requests for a given IP for, in this case it's 5 minutes
 
+then 
+	sudo nano /etc/fail2ban/filter.d/http-get-dos.conf to add filter:
+	[Definition]
+	failregex = ^<HOST> -.*"(GET|POST).*
+	ignoreregex =
 
+sudo /etc/init.d/fail2ban restart
+sudo systemctl start fail2ban
+sudo systemctl enable fail2ban
 
+or:
+sudo ufw reload
+sudo service fail2ban restart
+sudo systemctl enable fail2ban
 
+attack : ab -k -c 350 -n 20000 http://10.11.142.143/
+check : sudo iptables -S
+sudo tail -f /var/log/apache2/access.log
+sudo cat /var/log/ufw.log
+sudo cat /var/log/syslog
 
+# Psad
+https://www.unixmen.com/how-to-block-port-scan-attacks-with-psad-on-ubuntu-debian/
 
+	sudo apt-get update 
+	sudo apt-get install psad
+
+	sudo echo -e ’kern.info\t|/var/lib/psad/psadfifo’ >> /etc/syslog.conf
+	sudo /etc/init.d/rsyslog restart
+
+	sudo nano /etc/psad/psad.conf
+		paste config (see files/psad.conf file)
+
+	sudo /etc/init.d/psad restart
+
+	Update Firewall Rules for ipv4 and ipv6:
+		sudo iptables -A INPUT -j LOG
+		sudo iptables -A FORWARD -j LOG
+		sudo ip6tables -A INPUT -j LOG
+		sudo ip6tables -A FORWARD -j LOG
+
+	Restart:
+		sudo psad -R
+		sudo psad --sig-update
+		sudo psad -H
+
+# PortsEntry: (upd: psad working)
+	sudo apt-get update
+	sudo apt-get install portsentry
+
+	sudo /etc/init.d/portsentry stop
+
+	modify /etc/default/portsentry file:
+
+			sudo nano /etc/default/portsentry
+
+		TCP_MODE="atcp"
+		UDP_MODE="audp"
+
+	# 0 = Do not block UDP/TCP scans.
+	# 1 = Block UDP/TCP scans.
+	# 2 = Run external command only (KILL_RUN_CMD)
+
+	in /etc/portsentry/portsentry.conf file:
+
+		sudo nano /etc/portsentry/portsentry.conf
+
+	BLOCK_UDP="1"
+	BLOCK_TCP="1"
+
+	sudo nano /etc/portsentry/portsentry.conf
+	uncomment: KILL_ROUTE="/sbin/iptables -I INPUT -s $TARGET$ -j DROP"
+
+	sudo service portsentry restart 
+	sudo service portsentry status
+
+	to checkopen ports:
+	sudo lsof -P -i 
+	https://linuxhint.com/how_to_list_open_ports_on_linux/
+
+if ssh_exchange_identification: read: Connection reset by peer”:
+sudo nano /etc/hosts.deny
+delete banned ip from list
+https://phoenixnap.com/kb/fix-connection-reset-by-peer-ssh-error
 
 *****************
+
+# Services:
+https://linuxhint.com/disable_unnecessary_services_debian_linux/
+sudo systemd-analyze blame
+
+
+	systemctl --type=service --state=active
+	sudo service --status-all
+
+	sudo systemctl stop apparmore
+	sudo systemctl stop keyboard-setup
+	sudo systemctl stop console-setup
+	sudo systemctl stop rsyslog.service  or  sudo systemctl disable rsyslog
+	sudo systemctl disable systemd-pstore.service
+
+	systemctl list-unit-files --type=service
+
+
+		services left: 
+			apache2.service
+			cron.service
+			e2scrub_reap.service (triedto disasble, lost connection to vm) mailing service
+			fail2ban.service
+			getty@.service
+			networking.service
+			ssh.service
+			systemd-timesyncd.service (for packages)
+			ufw.service
+
+# Scripts:
+
+from root:
+sudo touch 
+
+
+
+# Your Git:
+sudo apt install git
+ssh-keygen -t rsa
+sudo cat /home/user/.ssh/id_rsa.pub
+
+paste to https://github.com/settings/keys
+
+
+# Apache:
+https://ubuntu.com/tutorials/install-and-configure-apache#2-installing-apache
+
+	sudo apt update
+	sudo apt install apache2
+	cd /var/www/
+	sudo mv html html2
+	sudo git clone repo html
+
+
 # Create Self-Signed SSL Certificate for Apache:
 https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-apache-in-ubuntu-16-04
 
 	Create the SSL Certificate
-		sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/myrogerskuline.fi.key -out /etc/ssl/certs/myrogerskuline.fi.crt
+		sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/myrogerskyline.fi.key -out /etc/ssl/certs/myrogerskyline.fi.crt
+
+		**	Common Name (e.g. server FQDN or YOUR name) []:10.11.142.143
+			Email Address []:root@debian.lan
 
 	Create strong Diffie-Hellman group, which is used in negotiating Perfect Forward Secrecy with clients (/etc/ssl/certs/dhparam.pem):
 		sudo openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048
@@ -234,12 +380,13 @@ https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl
 		open the SSL Virtual Host file to make adjustments
 			sudo nano /etc/apache2/sites-available/default-ssl.conf
 
-			add: ServerAdmin your_email@example.com
+			add: ServerAdmin root@debian.lan
 				ServerName server_domain_or_IP
 
 				SSLCertificateFile		/etc/ssl/certs/myrogerskyline.fi.crt
 				SSLCertificateKeyFile /etc/ssl/private/myrogerskyline.fi.key
 
+		uncomment:
 				BrowserMatch "MSIE [2-6]" \
 								nokeepalive ssl-unclean-shutdown \
 								 downgrade-1.0 force-response-1.0
@@ -255,6 +402,23 @@ https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl
 		if no Apache in application list:
 		https://stackoverflow.com/questions/51537084/i-installed-apache-2-but-in-sudo-ufw-app-list-there-is-no-apache-applications-in
 	
+		sudo nano /etc/ufw/applications.d/apache2-utils.ufw.profile
+
+		[Apache]
+		title=Web Server
+		description=Apache v2 is the next generation of the omnipresent Apache web server.
+		ports=80/tcp
+
+		[Apache Secure]
+		title=Web Server (HTTPS)
+		description=Apache v2 is the next generation of the omnipresent Apache web server.
+		ports=443/tcp
+
+		[Apache Full]
+		title=Web Server (HTTP,HTTPS)
+		description=Apache v2 is the next generation of the omnipresent Apache web server.
+		ports=80,443/tcp
+
 	Enabling the Changes in Apache
 		sudo a2enmod ssl
 		sudo a2enmod headers
@@ -262,4 +426,8 @@ https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl
 		sudo a2enconf ssl-params
 		sudo apache2ctl configtest
 		sudo systemctl restart apache2
+
+
+
+sudo apt purge <service> to delete unnesessary service 
 
