@@ -153,21 +153,20 @@ https://www.cyberciti.biz/faq/how-to-delete-a-ufw-firewall-rule-on-ubuntu-debian
 sudo ufw status numbered
 sudo ufw delete {rule-number-here}
 
-#	To check if there are still open ports:
-#	https://www.freecodecamp.org/news/what-is-nmap-and-how-to-use-it-a-tutorial-for-the-greatest-scanning-tool-of-all-time 
-#	sudo apt update
-#	sudo apt install nmap -y
-#	nmap -A 192.168.56.1
+To check open ports:
+https://www.freecodecamp.org/news/what-is-nmap-and-how-to-use-it-a-tutorial-for-the-greatest-scanning-tool-of-all-time 
+sudo apt update
+sudo apt install nmap -y
+nmap -A 192.168.56.2
 
 netstat -lntu -  opened Network ports
-______
 
 # DOS:
 http://lepepe.github.io/sysadmin/2016/01/19/ubuntu-server-ufw.html
 https://wiki.archlinux.org/title/Uncomplicated_Firewall#Rate_limiting_with_ufw
 
-	ufw has the ability to deny connections from an IP address that has attempted to initiate 6 or more connections in the last 30 seconds. Users should consider using this option for services such as SSH:
-		sudo ufw limit SSH
+ufw has the ability to deny connections from an IP address that has attempted to initiate 6 or more connections in the last 30 seconds. Users should consider using this option for services such as SSH:
+	sudo ufw limit SSH
 
 Fail2Ban:
 https://wiki.archlinux.org/title/Fail2ban
@@ -281,8 +280,6 @@ and delete banned ip from list
 https://phoenixnap.com/kb/fix-connection-reset-by-peer-ssh-error
 
 you can add any IP to /etc/hosts.allow
-
-*****************
 
 # Services:
 https://linuxhint.com/disable_unnecessary_services_debian_linux/
