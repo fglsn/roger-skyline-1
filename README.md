@@ -75,7 +75,7 @@ Inside /etc/network/interfaces file add:
 	netmask can be also set by:
 		ifconfig enp0s3 netmask 255.255.255.252 (but only until reboot)
 
-# Modify dafault ssh port:
+# Modify default ssh port:
 	https://www.linuxlookup.com/howto/change_default_ssh_port
 	Change PORT 22 from default to for example 50042, save, reboot SHH:
 		sudo nano/etc/ssh/sshd_config 
