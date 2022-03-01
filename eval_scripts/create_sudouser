@@ -1,0 +1,50 @@
+#!/bin/bash
+
+#Credits for script to @leotran
+
+printf "Type 1 or 2 and hit enter\n1) Add new user\n2) Exit\n"
+read input
+if ! [[ $input == 1 || $input == 2 ]]
+then
+	printf "Usage: Type 1 or 2 and hit Enter\n"
+fi
+
+while ! [[ $input == 1 || $input == 2 ]]
+do
+	read -s input
+done
+
+if [ $input == 1 ]
+then 
+	printf "Choose username: "
+	read user
+	sudo useradd $user
+	sudo passwd $user
+	printf "Do you want to create a home directory for the user? (y/n)\n"
+	read homedir
+	if [ $homedir == "y" ]
+	then
+		sudo mkhomedir_helper $user
+		printf "Home directory created.\n"
+	fi
+	printf "Do you want to give sudo access for $user? (y/n)\n"
+	read suaccess
+	if [ $suaccess == "y" ]
+	then
+		sudo usermod -aG sudo $user
+		printf "Sudo privileges added to $user.\n"
+	fi
+	printf "User $user has been successfully created\n"
+fi
+
+sudo mkdir /home/$user/.ssh/
+sudo chmod 755 /home/user/.ssh
+sudo chmod 755 /home/$user/.ssh
+sudo chmod 755 /home/user/.ssh/authorized_keys
+sudo cp /home/user/.ssh/authorized_keys /home/$user/.ssh/authorized_keys
+
+if [ $input == 2 ]
+then
+	printf "Script exited!\n"
+	exit
+fi

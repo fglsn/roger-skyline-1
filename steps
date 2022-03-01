@@ -5,7 +5,7 @@ https://www.debian.org/distrib/
 Partition:
 Create three partitions on SCSI2
 1.	4.2GB, primary, beggining, ext4, /
-2.	1GB, swap
+2.	500MB, swap
 3.	Rest memory, logical, ext4, home/
 
 In software installation:
@@ -16,8 +16,7 @@ Grub - ok, install to disk
 
 to check partition table in GB later:
 sudo apt install parted
-sudo parted -> help -> unit GB -> print all
-
+sudo parted -> unit GB -> print all
 
 ----
 # Update system
@@ -41,43 +40,41 @@ https://askubuntu.com/questions/1096930/sudo-apt-update-error-release-file-is-no
 	sudo usermod -aG username
 	su - user
 
+# Add static IP address:
 
-# Disable DHCP and add static IP address:
+Set static IP on one VM machine with NAT & Host-Only interfaces.
+	https://www.codesandnotes.be/2018/10/16/network-of-virtualbox-instances-with-static-ip-addresses-and-internet-access/
 
-Set network adapter of VM to be attached to Bridged Adapter (Network settings of VM)
-https://superuser.com/questions/594550/how-does-bridged-networking-work-in-virtualbox
-https://linuxconfig.org/how-to-setup-a-static-ip-address-on-debian-linux
+Create a host in VirtualBox:
+File -> Host Network Manager -> Create -> Configure Adapter Manually
+Set IP address of host, set mask 255.255.255.252
 
-Difference between auto and allow-hotplug
-https://unix.stackexchange.com/questions/641228/etc-network-interfaces-difference-between-auto-and-allow-hotplug#:~:text=I%20mean%20auto%20is%20brought,of%20static%20configuration%20is%20used.
+In Network Preferences of your VM:
+Set 1st interface as NAT, Second as Host-Only Adapter and choose a host that you just created
 
-In /etc/network/interfaces file:
-	remove last line and leave only "auto enp0s3"
+Calculate possible IP that you can use considering that netmask 30 doesn't provide you with many options
+Netmask notation: https://www.pawprint.net/designresources/netmask-converter.php
 
-	create enp0s3 file inside interfaces.d folder 
-	inside /etc/network/interfaces.d/enp0s3 file specify:
-		iface enp0s3 inet static
-			address 10.11.142.142
-			netmask 255.255.255.252 #stands for /30
-			gateway 10.11.254.254
+Inside /etc/network/interfaces file add:
+	iface enp0s8 inet static
+		address 192.168.56.2 #
+		netmask 255.255.255.252 #stands for /30
 
 	save file
 	restart networking daemon with:
-	sudo service networking restart
-	sudo ip link set enp0s3 up
-	https://www.howtogeek.com/657911/how-to-use-the-ip-command-on-linux/
+		sudo service networking restart	
 
-	(netmask can be also set by:
-	ifconfig interface_name netmask mask )
-
+	netmask can be also set by:
+		ifconfig enp0s3 netmask 255.255.255.252 (but only until reboot)
 
 # Modify dafault ssh port:
 	https://www.linuxlookup.com/howto/change_default_ssh_port
-	Change /etc/ssh/sshd_config #PORT 22 from default to for example 50042, save, reboot SHH with
-	sudo /etc/init.d/ssh restart
+	Change PORT 22 from default to for example 50042, save, reboot SHH:
+		sudo nano/etc/ssh/sshd_config 
+		sudo /etc/init.d/ssh restart
 
 Now should be able to connect via ssh on host computer with:
-ssh username@10.11.142.142 -p 50042
+ssh username@192.168.56.2 -p 50042
 
 Disable SSH Root Login:
 	https://www.tecmint.com/disable-or-enable-ssh-root-login-and-limit-ssh-access-in-linux/#:~:text=For%20security%20reasons%2C%20it's%20not,gain%20access%20to%20your%20system.
@@ -92,12 +89,12 @@ If accidentely deleted host-keys in /etc/ssh do this:
 	sudo dpkg-reconfigure openssh-server
 	sudo systemctl restart ssh
 
-# Configure SSH with to be accessable with pub.key:
+# Configure SSH to be accessable with pub.key:
 	https://kb.iu.edu/d/aews
 	https://www.linode.com/docs/guides/use-public-key-authentication-with-ssh/
 	1. Create rsa key on local Mac
   	ssh-keygen -t rsa
-	2. Redirect PUBLIC ley to VM. It will be authomatically added to /home/<username>/.ssh as authorized_keys
+	2. Redirect PUBLIC ley to VM. It will be authomatically added to /home/user/.ssh as authorized_keys
   	ssh-copy-id -i /Users/ishakuro/.ssh/id_rsa.pub user@10.11.142.143 -p 50042
 	Change /etc/ssh/sshd_config 
 	set #PasswordAuthentication to no, uncomment
@@ -151,13 +148,9 @@ sudo ufw delete {rule-number-here}
 #	https://www.freecodecamp.org/news/what-is-nmap-and-how-to-use-it-a-tutorial-for-the-greatest-scanning-tool-of-all-time 
 #	sudo apt update
 #	sudo apt install nmap -y
-#	nmap -A 10.11.142.142
-
-#??? 9929/tcp  open  nping-echo Nping echo ???
-#??? 31337/tcp open  tcpwrapped ???
+#	nmap -A 192.168.56.1
 
 netstat -lntu -  opened Network ports
-
 ______
 
 # DOS:
@@ -182,10 +175,9 @@ install:
 	sudo apt-get install fail2ban
 
 	copy jail.conf to jail.local:
-		sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+	sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
 
 	set rules in jail.local:
-
 	sudo nano /etc/fail2ban/jail.local
 
 	[sshd]
@@ -231,9 +223,10 @@ or:
 sudo ufw reload
 sudo service fail2ban restart
 sudo systemctl enable fail2ban
+ 
+attack from your mac: ab -k -c 350 -n 20000 http://192.168.56.2/
+check if f2b rule for attacker IP has appeared in iptables: sudo iptables -S
 
-attack : ab -k -c 350 -n 20000 http://10.11.142.143/
-check : sudo iptables -S
 sudo tail -f /var/log/apache2/access.log
 sudo cat /var/log/ufw.log
 sudo cat /var/log/syslog
@@ -263,51 +256,28 @@ https://www.unixmen.com/how-to-block-port-scan-attacks-with-psad-on-ubuntu-debia
 		sudo psad --sig-update
 		sudo psad -H
 
-# PortsEntry: (upd: psad working)
-	sudo apt-get update
-	sudo apt-get install portsentry
+to checkopen ports:
+sudo lsof -P -i 
+https://linuxhint.com/how_to_list_open_ports_on_linux/
 
-	sudo /etc/init.d/portsentry stop
+You may have lost your SSH connection, no problem:
 
-	modify /etc/default/portsentry file:
+remove rule from iptables with:
+sudo iptables -D <copy a line with f2b rule for your ip (without -A in beginning)>
 
-			sudo nano /etc/default/portsentry
-
-		TCP_MODE="atcp"
-		UDP_MODE="audp"
-
-	# 0 = Do not block UDP/TCP scans.
-	# 1 = Block UDP/TCP scans.
-	# 2 = Run external command only (KILL_RUN_CMD)
-
-	in /etc/portsentry/portsentry.conf file:
-
-		sudo nano /etc/portsentry/portsentry.conf
-
-	BLOCK_UDP="1"
-	BLOCK_TCP="1"
-
-	sudo nano /etc/portsentry/portsentry.conf
-	uncomment: KILL_ROUTE="/sbin/iptables -I INPUT -s $TARGET$ -j DROP"
-
-	sudo service portsentry restart 
-	sudo service portsentry status
-
-	to checkopen ports:
-	sudo lsof -P -i 
-	https://linuxhint.com/how_to_list_open_ports_on_linux/
-
-if ssh_exchange_identification: read: Connection reset by peer”:
+then check
 sudo nano /etc/hosts.deny
-delete banned ip from list
+
+and delete banned ip from list
 https://phoenixnap.com/kb/fix-connection-reset-by-peer-ssh-error
+
+you can add any IP to /etc/hosts.allow
 
 *****************
 
 # Services:
 https://linuxhint.com/disable_unnecessary_services_debian_linux/
 sudo systemd-analyze blame
-
 
 	systemctl --type=service --state=active
 	sudo service --status-all
@@ -332,11 +302,36 @@ sudo systemd-analyze blame
 			systemd-timesyncd.service (for packages)
 			ufw.service
 
+sudo apt purge <service> to delete unnesessary service 
+
+
 # Scripts:
+https://serverfault.com/questions/310098/how-to-add-a-timestamp-to-bash-script-log
+https://askubuntu.com/questions/672892/what-does-y-mean-in-apt-get-y-install-command
+https://unix.stackexchange.com/questions/153911/when-does-linux-send-a-root-mail-and-how-to-force-it-for-testing-purposes
 
 from root:
-sudo touch 
+touch /root/update_packages.sh
+chmod 755 update_packages.sh
+chown root /root/update_packages.sh
+nano /root/update_packages.sh
+paste script
 
+touch /root/crontab_alert.sh
+chmod 755 crontab_alert.sh
+chown root /root/crontab_alert.sh
+paste script
+
+crontab -e
+
+@reboot /root/update_packages.sh &
+0 4 * * wed /root/update_packages.sh &
+0 0 * * * /root/crontab_alert.sh &
+
+
+sudo echo "#" >> /etc/crontab
+sudo sh /root/crontab_alert.sh
+sudo cat /var/spool/mail/user | grep cron
 
 
 # Your Git:
@@ -363,7 +358,7 @@ https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl
 	Create the SSL Certificate
 		sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/myrogerskyline.fi.key -out /etc/ssl/certs/myrogerskyline.fi.crt
 
-		**	Common Name (e.g. server FQDN or YOUR name) []:10.11.142.143
+		**	Common Name (e.g. server FQDN or YOUR name) []:192.168.56.2
 			Email Address []:root@debian.lan
 
 	Create strong Diffie-Hellman group, which is used in negotiating Perfect Forward Secrecy with clients (/etc/ssl/certs/dhparam.pem):
@@ -430,4 +425,3 @@ https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl
 
 
 sudo apt purge <service> to delete unnesessary service 
-
