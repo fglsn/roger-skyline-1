@@ -22,7 +22,7 @@ In software installation:
 	SSH services - check,
 	Utilities - check,
 	Grub - ok,
-	install to disk
+	install to disk (goinfre)
 
 To check partition table in GB later:
 	`sudo apt install parted`
