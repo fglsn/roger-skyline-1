@@ -63,7 +63,10 @@ Calculate possible IP that you can use considering that netmask 30 doesn't provi
 Netmask notation: https://www.pawprint.net/designresources/netmask-converter.php  
 
 Inside /etc/network/interfaces file add:  
+(if you have allow-hotplug for enp0s3 change it to auto enp0s3 and add next interface)
 ```console
+
+auto enp0s8
 iface enp0s8 inet static  
 	address 192.168.56.2  
 	netmask 255.255.255.252  
