@@ -73,7 +73,12 @@ iface enp0s8 inet static
 ```
 Save file and restart networking daemon with:  
 &emsp; `sudo service networking restart`   
-  
+
+Check ifconfig (install net-tools package if not yet done)
+Both interfaces (enp0s3 and enp0s8) should be up. If not:
+&emsp; `ip link enp0s3 up`
+&emsp; `ip link enp0s8 up`
+
 &emsp; Netmask can be also set by:  
 &emsp; `sudo ifconfig enp0s8 netmask 255.255.255.252` (but only until reboot)
 
