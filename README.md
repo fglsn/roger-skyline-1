@@ -1,7 +1,7 @@
 # roger-skyline-1
 
-This subject follows Init where we have learn some of basics commands and first
-reflexes in system and network administration. This project is a concrete exemple of
+This subject follows Init-project where we have learned some of basics commands and first
+reflexes in system and network administration. This project is a concrete example of
 the use of those commands and will let you start your own first web server. 
 
 This file describes my steps of this project completion.
